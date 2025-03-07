@@ -76,3 +76,63 @@ class TransformerEmbeddingCosine(nn.Module):
 
     def get_weights(self):
         return [(name, param) for name, param in self.embedding.named_parameters()]
+
+
+class TransformerEmbeddingClassification(nn.Module):
+    """
+    A network that sees a single embedding and outputs a classification for num_classes
+    """
+    dropout = 0.1
+
+    def __init__(
+            self,
+            input_features=640,
+            dim_feedforward=1280,
+            hidden_layer=640,
+            nhead=10,
+            num_layers=6,
+            res_block_layers=0,
+            num_classes=12
+    ):
+        super().__init__()
+        encoder_layer = nn.TransformerEncoderLayer(
+            d_model=input_features,
+            nhead=nhead,
+            dim_feedforward=dim_feedforward,
+            dropout=self.dropout,
+            batch_first=True
+        )
+        self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
+        if res_block_layers == 0:
+            self.embedding = nn.Sequential(OrderedDict([
+                ('norm', nn.LayerNorm(input_features)),
+                ('dropout', nn.Dropout(p=self.dropout)),
+                ('linear', nn.Linear(input_features, hidden_layer)),
+                ('activation', nn.ReLU()),
+                ('linear', nn.Linear(hidden_layer, num_classes)),
+                # we need to softmax so that they are actually probabilities (sum to 1)
+                ('softmax', nn.Softmax(1))
+            ]))
+        else:
+            res_block = OrderedDict([(
+                f'block{i}',
+                ResBlock(input_features, hidden_layer, self.dropout)
+            ) for i in range(res_block_layers)])
+            res_block.update([
+                ('dropout', nn.Dropout(p=self.dropout)),
+                ('linear', nn.Linear(input_features, hidden_layer)),
+                ('activation', nn.ReLU()),
+                ('linear', nn.Linear(hidden_layer, num_classes)),
+                # we need to softmax so that they are actually probabilities (sum to 1)
+                ('softmax', nn.Softmax(1))
+            ])
+            self.embedding = nn.Sequential(res_block)
+
+    def embedding_pooling(self, x, x_mask):
+        return self.embedding(self.transformer(x, src_key_padding_mask=x_mask).sum(dim=1))
+
+    def forward(self, x, x_mask):
+        return self.embedding_pooling(x, x_mask)
+
+    def get_weights(self):
+        return [(name, param) for name, param in self.embedding.named_parameters()]
