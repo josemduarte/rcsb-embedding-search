@@ -153,6 +153,13 @@ def collate_dual_fn(tuple_list):
     )
 
 
+def collate_single_embedding_fn(tuple_list):
+    return (
+        collate_seq_embeddings([x for x, z in tuple_list]),
+        collate_label([z for x, z in tuple_list]),
+    )
+
+
 def triplet_collate_fn(tuple_list):
     return (
         collate_seq_embeddings([x for x, y, z in tuple_list]),
