@@ -57,19 +57,20 @@ class LitStoEmbeddingTraining(LitStructureCore):
         # This is to have an indices vector as explained in
         #  https://pytorch.org/torcheval/stable/generated/torcheval.metrics.MulticlassAUROC.html
         z_nonzero_indices = z.nonzero(as_tuple=True)[1]
-        pr_auc = multiclass_auprc(z_pred, z_nonzero_indices, num_classes=self.model.num_classes)
+        pr_auc = multiclass_auprc(z_pred, z_nonzero_indices, num_classes=self.cfg.training_parameters.num_classes)
         self.log(self.PR_AUC_METRIC_NAME, pr_auc, sync_dist=True)
         # TODO Joan's code had a conditional for 'mps' device here. Is that needed?
         # if self.device.type == 'mps':
         #     roc_auc = binary_auroc(z_pred.to('cpu'), z.to('cpu'))
         # else:
         #     roc_auc = binary_auroc(z_pred, z)
-        roc_auc = multiclass_auroc(z_pred, z_nonzero_indices, num_classes=self.model.num_classes)
+        roc_auc = multiclass_auroc(z_pred, z_nonzero_indices, num_classes=self.cfg.training_parameters.num_classes)
         self.log(self.ROC_AUC_METRIC_NAME, roc_auc, sync_dist=True)
         self.log_loss(self.VALIDATION_LOSS_METRIC_NAME)
-        conf_matr = multiclass_confusion_matrix(z_pred, z_nonzero_indices, self.model.num_classes)
-        # numpy gets the pure matrix without any tensor prefix or cuda suffix
-        self.logger.experiment.add_text("Confusion matrix", str(conf_matr.cpu().numpy()))
+        conf_matr = multiclass_confusion_matrix(z_pred, z_nonzero_indices, self.cfg.training_parameters.num_classes)
+        if self.cfg is not None and hasattr(self.logger.experiment, 'add_text'):
+            # numpy gets the pure matrix without any tensor prefix or cuda suffix
+            self.logger.experiment.add_text("Confusion matrix", str(conf_matr.cpu().numpy()))
 
 def log_loss(self, step):
         # note: a specific implementation of this one is needed because for classification problem we use crossentropy

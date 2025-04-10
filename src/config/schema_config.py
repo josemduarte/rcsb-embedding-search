@@ -18,6 +18,8 @@ class TrainingConfig:
     training_parameters: TrainingParameters = MISSING
     network_parameters: NetworkParams = MISSING
     embedding_network: Any = MISSING
+    # TODO is number_classes really a TrainingConfig. Think about where to place it
+    number_classes: int = MISSING
     metadata: Optional[Any] = None
 
 
