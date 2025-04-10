@@ -12,7 +12,6 @@ from torch.utils.data import DataLoader
 from config.utils import get_config_path
 from dataset.sto_from_embeddings_dataset import StoDataset
 from dataset.utils.custom_weighted_random_sampler import CustomWeightedRandomSampler
-from dataset.utils.tm_score_weight import fraction_score_of, tm_score_weights
 from dataset.utils.tools import collate_single_embedding_fn
 from lightning_module.training.embedding_training import LitStoEmbeddingTraining
 
